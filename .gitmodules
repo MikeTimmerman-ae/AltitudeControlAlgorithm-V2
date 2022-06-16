@@ -1,6 +1,3 @@
 [submodule "libraries/eigen"]
 	path = libraries/eigen
 	url = https://gitlab.com/libeigen/eigen.git
-[submodule "libraries/casadi"]
-	path = libraries/casadi
-	url = https://github.com/casadi/casadi.git
