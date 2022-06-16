@@ -1,74 +1,60 @@
 #include "header.h"
 
-MatrixXf loadFile(string FileName, int row, int col) {
-    MatrixXf Matrix(row, col);
-	ifstream File(FileName);
-	for (int k = 0; k < row; ++k) {
-		string line;
-		getline(File, line, '\n');
-		for (int j = 0; j < col; ++j) {
-			string entry = line.substr(0, line.find(','));
-			line.erase(0, line.find(',') + 1);
-			Matrix(k, j) = stod(entry);
-		}
-	}
-    return Matrix;
-}
-
 
 int main(int argc, char const *argv[])
 {
+    /* Controller */
+    PIDcontroller PID( 2, 1, 0.05 );
+
+    // Controller gains
+   	VectorXf pGains( 2 );
+	pGains(0) = -3.0;     // -2.933
+	pGains(1) = -3.0;       // -3.0
+
+	VectorXf iGains( 2 );
+	iGains(0) = 0.0;
+	iGains(1) = 0.0;
+
+	VectorXf dGains( 2 );
+	dGains(0) = -7.0;     // -6.933
+	dGains(1) = -7.0;       // -7.0
+
+    PID.setProportionalGains( pGains );
+    PID.setIntegralGains( iGains );
+    PID.setDerivativeGains( dGains );
+
+    // Controller limits
+    PID.setControlLowerLimit(0, 0.0);
+    PID.setControlUpperLimit(0, 0.05);
+
+    PID.setControlLowerRateLimit(0, -0.05);
+    PID.setControlUpperRateLimit(0, 0.05);
+
+    // Controller reference using polynomial approximation coefficients
+    MatrixXf ref( 2,6 );
+
+    ref.row(0) << 0.000552959959483582,-0.0536167708516457,2.11969221432553,-48.1791794728476,707.049841776998,-1640.19371969719;   // Altitude reference signal
+    ref.row(1) << -1.78444699910487e-05,0.00365544263025656,-0.225186229775288,6.27114893267685,-94.0507177583389,696.642796048007; // Velocity reference signal       
+
+    PID.setPolynomialReference(ref);
+
+
     /* System dynamics */
-    dynamics Rocket;
-    int n = 3;      // lifted dimension
-    int nx = 2;     // state dimension
-    int nrbf = 1;   // augmented dimension
-    int nu = 1;     // Input dimension
-    int ny = 2;     // Output dimension
-    int N = 1;      // Prediction Horizon
+    VectorXf init_state(4);
+    init_state << 171.9, 1098.5, 54.14, 332.26;                         // Initial state
+    float t_burn = 5.5;                                                 // Initial time
 
-    /* Lifting mapping function */
-    MatrixXf cent = loadFile("../data/cent.csv", Rocket.n_states, nrbf);
-    string rbf_type = "gauss";
-    rbf liftFun(cent, rbf_type, 1.0/3510.0, 1.0);
+    unsigned int nx = 4;     // state dimension
+    unsigned int nu = 1;     // Input dimension
+    unsigned int ny = 2;     // Output dimension
 
-    /* Linearized model */
-    MatrixXf A = loadFile("../data/Alift.csv", n, n);               // x_dot = A*x + B*u
-    MatrixXf B = loadFile("../data/Blift.csv", n, nu);                
-    MatrixXf C = MatrixXf::Identity(ny, n);                         // y = C*x
+    dynamics Rocket( nx, nu, ny, init_state, 0.05, t_burn );
 
-    /* Define quadratic cost function */
-    MatrixXf Q = MatrixXf::Identity(ny, n); Q(0,0) = 500; Q(1,1) = 10;
-    MatrixXf R = MatrixXf::Identity(ny, n);
-    MatrixXf P = MatrixXf::Identity(ny, n);
-
-    /* Configure controller */
-    
 
     /* Closed-loop simulation */
-    int Tsim = 18;
-    int Nsim = (int) Tsim/Rocket.dt;
+    simulator Simulator( nx, nu, ny, PID, Rocket, 0.05 );
 
-    Rocket.state << 1074.63, 307.645;                                        // Initial state
-    Rocket.t = Rocket.t_burn;                                               // Initial time
-    VectorXf xlift;
-    
-    MatrixXf X(Nsim+1, Rocket.n_states); X(0, seq(0, Rocket.n_states - 1)) = Rocket.state.transpose();
-
-    for (int i = 0; i < Nsim; ++i) {
-
-        // Simulate closed loop feedback control
-        VectorXf state = Rocket.state;
-        xlift = liftFun.lift(state);
-        Rocket.update_state(0);
-                
-        // Store data
-        X(i+1, seq(0, Rocket.n_states-1)) = Rocket.state.transpose();
-
-        if ((i+1)%25 == 0) {
-            cout << "Altitude: " << Rocket.state[0] << " Time: " << Rocket.t << endl;
-            cout << "Closed-Loop simulation: iteration " << i+1 << " out of " << Nsim << endl;
-        }
-    }
-
+    //Simulator.simulate( 20.0, true );
+    //Simulator.tune(  );
+    Simulator.robustness( init_state );
 }

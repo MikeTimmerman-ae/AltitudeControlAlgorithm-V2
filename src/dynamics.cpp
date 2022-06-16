@@ -1,98 +1,114 @@
 /**
  *	\file src/dynamics.cpp
  *	\author Mike Timmerman
- *	\version 4.0
+ *	\version 4.1
  *	\date 2022
  */
 
-#include <iostream>
-#include "../include/dynamics.h"    // #include header
+#include "../header.h"    // #include header
 
-#include <Eigen/Dense>              // #include modules
 
-using namespace std;
-using namespace Eigen;
+//
+// PUBLIC MEMBER FUNCTIONS:
+//
 
-dynamics::dynamics() {
+dynamics::dynamics(  ) {}
+
+
+dynamics::dynamics( unsigned int _nx,
+                    unsigned int _nu, 
+                    unsigned int _ny,
+                    VectorXf _initState,
+                    float _samplingTime, 
+                    float _initTime )
+{
     // Initialize system dynamics properties
-    dt = 0.02;
-    t = 0;
-    n_states = 2;
-    state = VectorXf::Zero(2,1);
+    nx = _nx;
+    nu = _nu;
+    ny = _ny;
 
-    // Standard rocket parameters
-    g = 9.81;
-    density_sea = 1.225;
-    A = 0.0191;
-    A_flap = 0.009;
-    Cd_rocket = 0.55;
-    Cd_airbrake = 0.4;    
-    mass = 20.1;
-    t_burn = 5.5;
+    initTime = _initTime;
+    time = _initTime;
+    samplingTime = _samplingTime;
+
+    lastU = VectorXf::Zero( _nu );
+    initState = _initState;
+    state = _initState;
 
     // Initialize private data members
-    k1 = VectorXf::Zero(2,1);
-    k2 = VectorXf::Zero(2,1);
-    k3 = VectorXf::Zero(2,1);
-    k4 = VectorXf::Zero(2,1);
-    state_derivative = VectorXf::Zero(2,1);
-}
-
-dynamics::dynamics(int n, VectorXf initState, float dtP, float t_initial) {
-    // Initialize system dynamics properties
-    dt = dtP;
-    t = t_initial;
-    n_states = n;
-    state = initState;
-
-    // Standard rocket parameters
-    g = 9.81;
-    density_sea = 1.225;
-    A = 0.0191;
-    A_flap = 0.009;
-    Cd_rocket = 0.55;
-    Cd_airbrake = 0.4;  
-    mass = 20.1;
-    t_burn = 5.5;
-
-    // Initialize private data members
-    k1 = VectorXf::Zero(n,1);
-    k2 = VectorXf::Zero(n,1);
-    k3 = VectorXf::Zero(n,1);
-    k4 = VectorXf::Zero(n,1);
-    state_derivative = VectorXf::Zero(n,1);
+    k1 = VectorXf::Zero(nx,1);
+    k2 = VectorXf::Zero(nx,1);
+    k3 = VectorXf::Zero(nx,1);
+    k4 = VectorXf::Zero(nx,1);
+    stateDerivative = VectorXf::Zero(nx,1);
 }
 
 
-VectorXf dynamics::rocket_dynamics(float tEv, VectorXf stateEv, float u) {
-    /*
-    t - float representing the independent variable of the DE
-    y - 1-D array representing the state variable of the DE
-    u - float representing the control input of the DE
-    */
-    float density = density_sea * exp(-stateEv[0] / 8800.0);
-    float Cd = Cd_rocket + u*Cd_airbrake;
+dynamics::~dynamics(  ) {}
 
-    state_derivative[0] = stateEv[1];
-    state_derivative[1] = -g - 1.0/2.0 * density * pow(stateEv[1], 2) * (A + u*A_flap) * Cd / mass;
 
-    return state_derivative;
+
+void dynamics::resetDynamics( const VectorXf& offsets )
+{   
+    for (unsigned int i=0; i<nx; i++)
+    {   
+        state(i) = initState(i)*(1+offsets(i));
+    }
+    time = initTime;
+    lastU = VectorXf::Zero( nu );
 }
 
 
-void dynamics::update_state(float u) {
+void dynamics::step( const VectorXf& _u, VectorXf& _y )
+{
+    // Update system state
+    updateState( _u );
+
+    // Update system output
+    _y << state[1], state[3];
+}
+
+
+
+//
+// PRIVATE MEMBER FUNCTIONS:
+//
+
+void dynamics::updateState( const VectorXf& _u )
+{   
+    omega = (_u(0)-lastU(0))/(samplingTime*0.01);
+    lastU = _u;
+
     // Evaluation at start of interval
-    k1 = rocket_dynamics(t, state, u);
+    k1 = rocketDynamics(time, state, _u);
 
     // Evaluation at midway of interval
-    k2 = rocket_dynamics(t + 1/2*dt, state + dt*k1/2.0, u);
+    k2 = rocketDynamics(time + 1/2*samplingTime, state + samplingTime*k1/2.0, _u);
 
-    k3 = rocket_dynamics(t + 1/2*dt, state + dt*k2/2.0, u);
+    k3 = rocketDynamics(time + 1/2*samplingTime, state + samplingTime*k2/2.0, _u);
 
     // Evaluation at end of interval
-    k4 = rocket_dynamics(t + dt, state + dt*k3, u);
+    k4 = rocketDynamics(time + samplingTime, state + samplingTime*k3, _u);
 
     // Update system dynamics properties   
-    state = state + dt*(k1 + 2.0*k2 + 2.0*k3 + k4)/6.0;
-    t = t + dt;
+    state = state + samplingTime*(k1 + 2.0*k2 + 2.0*k3 + k4)/6.0;
+    time = time + samplingTime;
+}
+
+
+VectorXf dynamics::rocketDynamics( float _t, VectorXf _state, const VectorXf& _u )
+{
+    float xbr = _u(0);
+
+    density = density_sea * exp(-_state[1] / 8000.0);
+    V = sqrt(pow(_state[2], 2) + pow(_state[3], 2));
+    M = V/sqrt(1.4*287*278);
+    Cd_val = p00 + p10*xbr + p01*M + p20*xbr*xbr + p11*M*xbr + p02*M*M + p21*xbr*xbr*M + p12*xbr*M*M + p03*M*M*M;
+
+    stateDerivative[0] = _state[2];               // x_dot = Vx
+    stateDerivative[1] = _state[3];               // y_dot = Vy
+    stateDerivative[2] = - 1.0/2.0 * density * A * Cd_val * V * _state[2] / mass;  // Vx_dot
+    stateDerivative[3] = -g - 1.0/2.0 * density * A * Cd_val * V * _state[3] / mass;  // Vy_dot
+
+    return stateDerivative;
 }

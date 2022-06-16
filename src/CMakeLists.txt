@@ -19,17 +19,62 @@ target_link_directories(dynamics
 
 target_link_libraries(dynamics eigen)
 
-# Add rbf.cpp
 
-add_library(rbf rbf.cpp)
+# Add controller.cpp
 
-target_include_directories(rbf
+add_library(controller controller.cpp)
+
+target_include_directories(controller
     PUBLIC ${CMAKE_SOURCE_DIR}/libraries/eigen
 )
 
-target_link_directories(rbf
+target_link_directories(controller
     PUBLIC ${CMAKE_SOURCE_DIR}/libraries/eigen
 )
 
-target_link_libraries(rbf eigen)
+target_link_libraries(controller eigen)
 
+
+# Add simulator.cpp
+
+add_library(simulator simulator.cpp)
+
+target_include_directories(simulator
+    PUBLIC ${CMAKE_SOURCE_DIR}/libraries/eigen
+)
+
+target_link_directories(simulator
+    PUBLIC ${CMAKE_SOURCE_DIR}/libraries/eigen
+)
+
+target_link_libraries(simulator eigen)
+
+
+# Add saturator.cpp
+
+add_library(saturator saturator.cpp)
+
+target_include_directories(saturator
+    PUBLIC ${CMAKE_SOURCE_DIR}/libraries/eigen
+)
+
+target_link_directories(saturator
+    PUBLIC ${CMAKE_SOURCE_DIR}/libraries/eigen
+)
+
+target_link_libraries(saturator eigen)
+
+
+# Add helpers.cpp
+
+add_library(helpers helpers.cpp)
+
+target_include_directories(helpers
+    PUBLIC ${CMAKE_SOURCE_DIR}/libraries/eigen
+)
+
+target_link_directories(helpers
+    PUBLIC ${CMAKE_SOURCE_DIR}/libraries/eigen
+)
+
+target_link_libraries(helpers eigen)

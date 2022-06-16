@@ -9,17 +9,19 @@
 
 #include <iostream>                 // #include directives
 #include <fstream>
-#include <vector>
 #include <math.h>
 #include <string>
 
-#include "include/dynamics.h"       // #include src coude
-#include "include/rbf.h"       // #include src coude
+#include "include/saturator.h"      // #include src code
+#include "include/controller.h"     // #include src code
+#include "include/controller.ipp"
+#include "include/dynamics.h"       // #include src code
+#include "include/simulator.h"      // #include src coude
 
-#include <casadi/casadi.hpp>
+#include "include/helpers.h"        // #include src coude
+
 #include <Eigen/Dense>
 #include <Eigen/SparseCore>
-
 
 using namespace std;
 using namespace Eigen;
