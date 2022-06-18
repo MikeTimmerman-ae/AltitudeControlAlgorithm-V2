@@ -21,7 +21,7 @@ PIDcontroller::PIDcontroller(  ) : saturator(  )
 
 PIDcontroller::PIDcontroller(   unsigned int _nInputs,
                                 unsigned int _nOutputs,
-                                double _sampleTime ) : saturator( _nOutputs, _sampleTime )
+                                float _sampleTime ) : saturator( _nOutputs, _sampleTime )
 {
     if ( ( _nOutputs != _nInputs ) && ( _nOutputs != 1 ) )
     {

@@ -27,7 +27,7 @@ class PIDcontroller : public saturator
          * @param[in] _nOuputs          Number of inputs
          * @param[in] _samplingTime     Sampling time
 		 */
-        PIDcontroller( unsigned int _nInputs, unsigned int _nOuputs, double _sampleTime );
+        PIDcontroller( unsigned int _nInputs, unsigned int _nOuputs, float _sampleTime );
         
         /** Copy constructor
 		 *
@@ -124,7 +124,7 @@ class PIDcontroller : public saturator
         VectorXf iValue;                // Integrated value for all input components
         VectorXf lastError;             // Last error input
 
-        float samplingTime;
+        float samplingTime;             // Sampling time
 
         MatrixXf refCoeff;              // Reference using polynomial coefficients
         VectorXf u;                     // Control input

@@ -31,6 +31,9 @@ dynamics::dynamics( unsigned int _nx,
     time = _initTime;
     samplingTime = _samplingTime;
 
+    bias = VectorXf::Zero( _ny );
+    noiseLevel = VectorXf::Zero( _ny );
+
     lastU = VectorXf::Zero( _nu );
     initState = _initState;
     state = _initState;
@@ -47,6 +50,38 @@ dynamics::dynamics( unsigned int _nx,
 dynamics::~dynamics(  ) {}
 
 
+void dynamics::step( const VectorXf& _u, VectorXf& _y )
+{
+    /*  Update system state */
+    updateState( _u );
+
+    /* Update system output */
+    VectorXf tmp( ny ); tmp << state[1], state[3];
+
+    for (unsigned int i=0; i<ny; i++)
+    {
+        // Add noise
+        tmp(i) = tmp(i)*(1+ noiseLevel(i)*( rand() % 201 - 100.0) / 100.0);
+
+        // Add bais
+        tmp(i) = tmp(i) + bias(i);
+    }
+
+    _y = tmp;
+}
+
+
+void dynamics::setBias( const VectorXf& _bias )
+{
+    bias = _bias;
+}
+
+
+void dynamics::setNoise( const VectorXf& _noiseLevel )
+{
+    noiseLevel = _noiseLevel;
+}
+
 
 void dynamics::resetDynamics( const VectorXf& offsets )
 {   
@@ -56,16 +91,6 @@ void dynamics::resetDynamics( const VectorXf& offsets )
     }
     time = initTime;
     lastU = VectorXf::Zero( nu );
-}
-
-
-void dynamics::step( const VectorXf& _u, VectorXf& _y )
-{
-    // Update system state
-    updateState( _u );
-
-    // Update system output
-    _y << state[1], state[3];
 }
 
 

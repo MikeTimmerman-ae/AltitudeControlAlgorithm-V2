@@ -42,6 +42,7 @@ void simulator::simulate( float simulationTime, bool saveData )
     if (saveData)
     {        
         X = MatrixXf::Zero(nx+1, Nsim+1); X(seq(0, nx-1), 0) = Rocket.state;
+        Y = MatrixXf::Zero(ny, Nsim+1); X(0, 0) = Rocket.state[1]; X(1, 0) = Rocket.state[3];
         U = MatrixXf::Zero(1, Nsim+1); U(0, 0) = 0.0;
     }
     else
@@ -66,6 +67,7 @@ void simulator::simulate( float simulationTime, bool saveData )
             // Store data
             X(seq(0, nx-1), i+1) = Rocket.state;
             X(nx, i+1) = Rocket.omega;
+            Y(seq(0, ny-1), i+1) = y;
             U(0, i+1) = u(0);
 
             if ((i+1)%25 == 0)
@@ -82,9 +84,9 @@ void simulator::simulate( float simulationTime, bool saveData )
     if (saveData)
     {
         saveToFile(X, X.rows(), X.cols(), "../data/state.csv");
+        saveToFile(Y, Y.rows(), Y.cols(), "../data/output.csv");
         saveToFile(U, U.rows(), U.cols(), "../data/input.csv");
     }
-
 }
 
 

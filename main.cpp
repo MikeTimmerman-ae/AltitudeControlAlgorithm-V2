@@ -49,12 +49,31 @@ int main(int argc, char const *argv[])
     unsigned int ny = 2;     // Output dimension
 
     dynamics Rocket( nx, nu, ny, init_state, 0.05, t_burn );
+    
 
+    /* Set sensor and actuator bias and noise */
+    VectorXf actuatorBias( nu );
+    actuatorBias(0) = 0.01;
+    VectorXf actuatorNoise( nu );
+    actuatorNoise(0) = 0.10;
+
+    // PID.setBias( actuatorBias );
+    // PID.setNoise( actuatorNoise );
+
+    VectorXf sensorBias( ny );
+    sensorBias(0) = 30.0;
+    sensorBias(1) = 10.0;
+    VectorXf sensorNoise( ny );
+    sensorNoise(0) = 0.005;
+    sensorNoise(1) = 0.01;
+
+    // Rocket.setBias( sensorBias );
+    // Rocket.setNoise( sensorNoise );
 
     /* Closed-loop simulation */
     simulator Simulator( nx, nu, ny, PID, Rocket, 0.05 );
 
-    //Simulator.simulate( 20.0, true );
+    Simulator.simulate( 20.0, true );
     //Simulator.tune(  );
-    Simulator.robustness( init_state );
+    //Simulator.robustness( init_state );
 }

@@ -47,6 +47,19 @@ class dynamics
 		virtual ~dynamics( );
 
 
+        /** Set bias on control signals
+         * 
+         * @param[in] _bias             Bias on control input
+         */
+        void setBias( const VectorXf& _bias );
+
+        /** Set noise on control signals
+         * 
+         * @param[in] _noiseLevel               Index of control signal component
+         */
+        void setNoise( const VectorXf& _noiseLevel );
+
+
         /** Update system state given an input and return output
          * 
          * @param[in] _u        Control input
@@ -99,6 +112,9 @@ class dynamics
         unsigned int nx;                // Number of states
         unsigned int nu;                // Number of inputs
         unsigned int ny;                // Number of outputs
+
+        VectorXf bias;                  // bias on system output 
+        VectorXf noiseLevel;            // Noise on system output
 
         double p00 = 0.4165;			// Cd surface fit power coefficient
         double p10 = 8.886;				// Cd = p00       + p10 * x     + p01 * y     + p20 * x^2 + p11 * x*y

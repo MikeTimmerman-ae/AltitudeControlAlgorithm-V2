@@ -23,6 +23,9 @@ saturator::saturator( unsigned int _nU, float _samplingTime )
     lowerRateLimitControls = VectorXf::Ones( _nU )*1000000;
     upperRateLimitControls = VectorXf::Ones( _nU )*1000000;
 
+    bias = VectorXf::Zero( _nU );
+    noiseLevel = VectorXf::Zero( _nU );
+
     nU = _nU;
     samplingTime = _samplingTime;
     lastU = VectorXf::Zero( _nU );
@@ -36,6 +39,9 @@ saturator::saturator( const saturator& rhs )
 
     lowerRateLimitControls = rhs.lowerRateLimitControls;
     upperRateLimitControls = rhs.upperRateLimitControls;
+
+    bias = rhs.bias;
+    noiseLevel = rhs.noiseLevel;
 
     nU = rhs.nU;
     samplingTime = rhs.samplingTime;
@@ -55,7 +61,7 @@ void saturator::setControlLowerLimit( const VectorXf& _lowerLimit )
     lowerLimitControls = _lowerLimit;
 }
 
-void saturator::setControlLowerLimit( unsigned int idx, double _lowerLimit )
+void saturator::setControlLowerLimit( unsigned int idx, float _lowerLimit )
 {
     if ( idx >= nU )
         throw std::invalid_argument("Invalid index for control signal given");
@@ -71,7 +77,7 @@ void saturator::setControlUpperLimit( const VectorXf& _upperLimit )
     upperLimitControls = _upperLimit;
 }
 
-void saturator::setControlUpperLimit( unsigned int idx, double _upperLimit )
+void saturator::setControlUpperLimit( unsigned int idx, float _upperLimit )
 {
     if ( idx >= nU )
         throw std::invalid_argument("Invalid index for control signal given");
@@ -88,7 +94,7 @@ void saturator::setControlLowerRateLimit( const VectorXf& _lowerRateLimit )
     lowerRateLimitControls = _lowerRateLimit;
 }
 
-void saturator::setControlLowerRateLimit( unsigned int idx, double _lowerRateLimit )
+void saturator::setControlLowerRateLimit( unsigned int idx, float _lowerRateLimit )
 {
     if ( idx >= nU )
         throw std::invalid_argument("Invalid index for control signal given");
@@ -104,12 +110,23 @@ void saturator::setControlUpperRateLimit( const VectorXf& _upperRateLimit )
     upperRateLimitControls = _upperRateLimit;
 }
 
-void saturator::setControlUpperRateLimit( unsigned int idx, double _upperRateLimit )
+void saturator::setControlUpperRateLimit( unsigned int idx, float _upperRateLimit )
 {
     if ( idx >= nU )
         throw std::invalid_argument("Invalid index for control signal given");
     
     upperRateLimitControls( idx ) = _upperRateLimit;
+}
+
+
+void saturator::setBias( const VectorXf& _bias )
+{
+    bias = _bias;
+}
+
+void saturator::setNoise( const VectorXf& _noiseLevel )
+{
+    noiseLevel = _noiseLevel;
 }
 
 
@@ -151,4 +168,18 @@ void saturator::saturate( VectorXf& _u )
             _u(i) = Ulb(i);
     }
     lastU = _u;
+
+    for ( unsigned int i=0; i<nU; i++ )
+    { 
+        // Add bias 
+        _u(i) = _u(i) + bias(i);
+        
+        if (_u(i) < lowerLimitControls(i))
+            _u(i) = lowerLimitControls(i);
+        if (_u(i) > upperLimitControls(i))
+            _u(i) = upperLimitControls(i);
+        
+        // Add noise
+        _u(i) = _u(i)*(1+ noiseLevel(i)*( rand() % 201 - 100.0) / 100.0);
+    }
 }

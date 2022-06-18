@@ -68,6 +68,7 @@ class simulator
         PIDcontroller PID;      // PID controller
         
         MatrixXf X;             // Save state data
+        MatrixXf Y;             // Save output data
         MatrixXf U;             // Save input data
 
         float samplingTime;     // Sampling time
